@@ -20,9 +20,16 @@ bot.
 """
 
 import logging
+import os
+import sys
 from timer import Reminder
 
 from telegram.ext import Updater, CommandHandler
+
+TOKEN = os.environ.get('TOKEN')
+if TOKEN == None:
+  print('Define TOKEN env var!')
+  sys.exit(1)
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -42,8 +49,8 @@ def alarm(rem):
 #   job = context.job
     text = rem['message'][1:]
 #   text = " ".join(list(map(lambda x: x.encode('utf-8'), text)))
-    text = f"{rem['message'][0][0]}{rem['message'][0][1]}:"\
-    f"{rem['message'][0][2]}{rem['message'][0][3]} @xelnagamex @ultradesu @condrix \n" + " ".join(text)
+    text = f"{rem['time'][0][0]}{rem['time'][0][1]}:"\
+    f"{rem['time'][0][2]}{rem['time'][0][3]} @xelnagamex @ultradesu @condrix \n" + " ".join(text)
     rem['context'].bot.send_message(rem['chat_id'], text=text)
 
 reminder = Reminder(callback=alarm)
@@ -66,23 +73,10 @@ def set_timer(update, context):
 #       job = context.job_queue.run_once(alarm, due, context=chat_id)
 #       context.chat_data['job'] = job
 
-        update.message.reply_text('Timer successfully set!')
+        update.message.reply_text('Хорошо, я напомню, а теперь иди нахуй.')
 
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /set <seconds>')
-
-
-def unset(update, context):
-    """Remove the job if the user changed their mind."""
-    if 'job' not in context.chat_data:
-        update.message.reply_text('You have no active timer')
-        return
-
-    job = context.chat_data['job']
-    job.schedule_removal()
-    del context.chat_data['job']
-
-    update.message.reply_text('Timer successfully unset!')
 
 
 def error(update, context):
@@ -95,7 +89,7 @@ def main():
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
-    updater = Updater("539189256:AAGqVoJZRmyrrl9mHzGuKBiqegHAxaRZxVw", use_context=True)
+    updater = Updater(TOKEN, use_context=True)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -103,11 +97,10 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", start))
-    dp.add_handler(CommandHandler("alarm", set_timer,
+    dp.add_handler(CommandHandler("alert", set_timer,
                                   pass_args=True,
                                   pass_job_queue=True,
                                   pass_chat_data=True))
-    dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
 
     # log all errors
     dp.add_error_handler(error)
