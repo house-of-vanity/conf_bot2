@@ -16,6 +16,7 @@ class Reminder:
             time = datetime.strptime(clean, '%H%M')
             rem = {
               'time': time,
+              'time_str': clean,
               'chat_id': chat_id,
               'message': msg,
               'context': context

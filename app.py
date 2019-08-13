@@ -49,8 +49,8 @@ def alarm(rem):
 #   job = context.job
     text = rem['message'][1:]
 #   text = " ".join(list(map(lambda x: x.encode('utf-8'), text)))
-    text = f"{rem['time'][0][0]}{rem['time'][0][1]}:"\
-    f"{rem['time'][0][2]}{rem['time'][0][3]} @xelnagamex @ultradesu @condrix \n" + " ".join(text)
+    text = f"{rem['time_str'][0]}{rem['time_str'][1]}:"\
+    f"{rem['time_str'][2]}{rem['time_str'][3]} @xelnagamex @ultradesu @condrix \n" + " ".join(text)
     rem['context'].bot.send_message(rem['chat_id'], text=text)
 
 reminder = Reminder(callback=alarm)
