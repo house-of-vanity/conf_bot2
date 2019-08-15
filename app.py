@@ -8,6 +8,9 @@ import sys
 from timer import Reminder
 
 from telegram.ext import Updater, CommandHandler
+from database import DataBase
+
+DB = DataBase('data.sql')
 
 TOKEN = os.environ.get('TOKEN')
 if TOKEN == None:
@@ -35,6 +38,14 @@ def alarm(rem):
     rem['context'].bot.send_message(rem['chat_id'], text=text)
 
 reminder = Reminder(callback=alarm)
+
+def dota(update, context):
+    if len(context.args) == 0:
+        update.message.reply_text('Use one of patch, hero, item.')
+    if context.args[0] == 'patches':
+        patches = DB.get_patch_list()
+        update.message.reply_text(f'List of patches {patches}')
+    context.bot.send_message(update.message.chat_id, context.args[0])
 
 def set_timer(update, context):
     """Add a job to the queue."""
@@ -64,6 +75,10 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", start))
     dp.add_handler(CommandHandler("alert", set_timer,
+                                  pass_args=True,
+                                  pass_job_queue=True,
+                                  pass_chat_data=True))
+    dp.add_handler(CommandHandler("dota", dota,
                                   pass_args=True,
                                   pass_job_queue=True,
                                   pass_chat_data=True))

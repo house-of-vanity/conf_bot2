@@ -111,6 +111,42 @@ class DataBase:
         self.execute(sql)
         return True
 
+    def add_item(self, item):
+        item = item.replace("'", "''")
+        sql = f"INSERT OR IGNORE INTO items('name')  VALUES ('{item}')"
+        self.execute(sql)
+        return True
+
+    def add_general_changes(self,
+            patch,
+            info):
+        info = info.replace("'", "''")
+        patch_id = self.get_patch_id(patch)
+        sql = f"""INSERT OR IGNORE INTO 
+        general_changes('patch', 'info')  
+        VALUES (
+            '{patch_id}', 
+            '{info}')"""
+        self.execute(sql)
+        return True
+
+    def add_item_changes(self,
+            patch,
+            item,
+            info):
+        item = item.replace("'", "''")
+        info = info.replace("'", "''")
+        item_id = self.get_item_id(item)
+        patch_id = self.get_patch_id(patch)
+        sql = f"""INSERT OR IGNORE INTO 
+        item_changes('patch', 'item', 'info')  
+        VALUES (
+            '{patch_id}', 
+            '{item_id}', 
+            '{info}')"""
+        self.execute(sql)
+        return True
+
     def add_hero_changes(self,
             change_type,
             patch,
@@ -139,161 +175,19 @@ class DataBase:
         ret = self.execute(sql)
         return ret[0][0]
 
+    def get_item_id(self, item):
+        sql = f"SELECT rowid FROM items WHERE name = '{item}'"
+        ret = self.execute(sql)
+        return ret[0][0]
+
     def get_hero_id(self, hero):
         sql = f"SELECT rowid FROM heroes WHERE name = '{hero}'"
         ret = self.execute(sql)
         return ret[0][0]
 
-    def get_group(self, group_id):
-        """
-          **Add new group and members**
-          :param group_id: ID of a group
-          :type group_id: int
-          :returns: list
-        """
-        sql = """SELECT s.name, s.reg_date, g.name 
-        FROM `students` s LEFT JOIN `groups` g 
-        ON s.`group` = g.rowid WHERE g.rowid = '%s'""" % group_id
+    def get_patch_list(self):
+        sql = f"SELECT version FROM patches"
         ret = self.execute(sql)
-        return ret
-
-    def add_group(self, group_name, members, author):
-        """
-          **Add new group and members**
-          :param group_name: Name of a group
-          :type group_name: string
-          :param members: Group members
-          :type members: list
-          :param author: User who create group.
-          :type members: int
-
-          :returns: None
-        """
-        sql = f"INSERT OR IGNORE INTO groups('name', 'author')  VALUES ('{group_name}', {author})"
-        self.execute(sql)
-        sql = f"SELECT rowid FROM groups WHERE name = '{group_name}'"
-        ret = self.execute(sql)
-        group_id = ret[0][0]
-        for member in members:
-            sql = f'''INSERT OR IGNORE INTO students('name', 'group', 'author') 
-            VALUES ('{member}','{group_id}', '{author}')'''
-            self.execute(sql)
-
-    def subject_list(self, user):
-        """
-          **List user's subjects.**
-          :param user: User who create subject.
-          :type user: int
-
-          :returns: list
-        """
-        sql = f"""SELECT name, reg_date, rowid
-        FROM subjects
-        WHERE author = '{user}'"""
-        ret = self.execute(sql)
-        print(ret)
-        return ret
-
-    def group_list(self, user='all', favourites=False):
-        """
-          **List user's groups or all groups.**
-          :param user: User who create group.
-          :type user: int
-
-          :returns: list
-        """
-        if user != 'all':
-            sql = f"""SELECT g.name, g.reg_date, g.rowid, count(s.rowid) 
-            FROM `groups` g 
-            LEFT JOIN `students` s ON s.`group` = g.rowid 
-            WHERE g.author = {user} GROUP BY g.name"""
-        else:
-            sql = f"""SELECT g.name, g.reg_date, g.rowid, count(s.rowid), u.name 
-            FROM `groups` g 
-            LEFT JOIN `students` s ON s.`group` = g.rowid 
-            LEFT JOIN users u ON u.rowid = g.author 
-            GROUP BY g.name"""
-        if (favourites and str(user)):
-            sql = f"""SELECT g.name, g.reg_date, g.rowid, count(s.rowid), u.name, d.group_id
-            FROM `groups` g 
-            LEFT JOIN `students` s ON s.`group` = g.rowid 
-            LEFT JOIN users u ON u.rowid = g.author 
-            LEFT JOIN dashboard d ON d.group_id = g.rowid
-            GROUP BY g.name"""
-        ret = self.execute(sql)
-        print(ret)
-        return ret
-
-    def add_to_favourites(self, group_id, user_id):
-        """
-          **Add group to user's favourites.**
-          :param user_id: User who saved dashboard.
-          :type user_id: int
-          :param group_id: Group ID
-          :type group_id: int
-
-          :returns: None
-        """
-        sql = f"INSERT OR IGNORE INTO dashboard(user_id, group_id) VALUES ('{user_id}', '{group_id}')"
-        self.execute(sql)
-
-    def remove_from_favourites(self, group_id, user_id):
-        """
-          **Remove group from user's favourites.**
-          :param user_id: User who saved dashboard.
-          :type user_id: int
-          :param group_id: Group ID
-          :type group_id: int
-
-          :returns: None
-        """
-        sql = f"DELETE FROM dashboard WHERE user_id='{user_id}' and group_id='{group_id}'"
-        self.execute(sql)
-
-    def get_dashboard(self, user):
-        """
-          **List user's saved groups on dashboard.**
-          :param user: User who saved dashboard.
-          :type user: int
-
-          :returns: list
-        """
-        sql = f"""SELECT g.name, g.reg_date, g.rowid, count(s.rowid) FROM dashboard d
-        LEFT JOIN users u ON u.rowid = d.user_id
-        LEFT JOIN `groups` g ON g.rowid = d.group_id
-        LEFT JOIN `students` s ON s.`group` = g.rowid
-        WHERE d.user_id = {user}
-        GROUP BY s.`group`
-        """
-        ret = self.execute(sql)
-        print(ret)
-        return ret
-
-    def user(self, action, name, pass_hash):
-        """
-          **Perform action with users table**
-          :param action: Requested action
-          :type action: string
-          :returns: None
-        """
-        if action == 'create':
-            sql = '''INSERT INTO users('name', 'pass')
-            VALUES ('%s', '%s')''' % (name, pass_hash)
-            self.execute(sql)
-
-    def login(self, name):
-        """
-          **Perform action with users table**
-          :param action: Requested action
-          :type action: string
-          :returns: None ?
-        """
-        sql = "SELECT pass, rowid FROM users WHERE name = '%s'" % name
-        ret = self.execute(sql)
-        if len(ret) == 0:
-            ret = False
-        else:
-            ret = ret[0]
         return ret
 
     def close(self, conn):
