@@ -185,10 +185,45 @@ class DataBase:
         ret = self.execute(sql)
         return ret[0][0]
 
+    def get_items_list(self):
+        sql = f"SELECT name FROM items"
+        ret = self.execute(sql)
+        items = list()
+        for item in ret:
+          items.append(item[0])
+        return items
+
+    def get_heroes_list(self):
+        sql = f"SELECT name FROM heroes"
+        ret = self.execute(sql)
+        heroes = list()
+        for hero in ret:
+          heroes.append(hero[0])
+        return heroes
+
     def get_patch_list(self):
         sql = f"SELECT version FROM patches"
         ret = self.execute(sql)
-        return ret
+        patches = list()
+        for patch in ret:
+          patches.append(patch[0])
+        return patches
+
+    def get_hero_history(self, hero):
+        hero = self.get_hero_id(hero)
+        sql = f"""SELECT p.version, hc.type, hc.info, hc.meta
+        FROM `hero_changes` hc 
+        LEFT JOIN `patches` p ON p.rowid = hc.patch
+        WHERE hc.hero = {hero}"""
+        return self.execute(sql)
+
+    def get_item_history(self, item):
+        item = self.get_item_id(item)
+        sql = f"""SELECT p.version, ic.info 
+        FROM item_changes ic 
+        LEFT JOIN patches p ON p.rowid = ic.patch 
+        WHERE ic.item = {item}"""
+        return self.execute(sql)
 
     def close(self, conn):
         """
