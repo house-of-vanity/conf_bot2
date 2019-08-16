@@ -40,16 +40,6 @@ def alarm(rem):
 
 reminder = Reminder(callback=alarm)
 
-def build_menu(buttons,
-    n_cols,
-    header_buttons=None,
-    footer_buttons=None):
-    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
-    if header_buttons:
-        menu.insert(0, [header_buttons])
-    if footer_buttons:
-        menu.append([footer_buttons])
-    return menu
 
 def dota(update, context):
     if len(context.args) == 0:
@@ -145,8 +135,6 @@ def button(update, context):
             if len(keyboard[-1]) == in_a_row:
                 keyboard.append(list())
             keyboard[-1].append(InlineKeyboardButton(f"{hero}", callback_data=f"hero_{hero}"))
-#       prev_page = page-1
-#       next_page = page+1
         keyboard.append([])
         if page != 0:
             keyboard[-1].append(
@@ -161,13 +149,31 @@ def button(update, context):
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(text=f"Select hero {page*per_page}:{page*per_page+per_page}", reply_markup=reply_markup)
     if query.data.split('_')[0] == 'items':
+        per_page = 20
+        try:
+            page = int(query.data.split('_')[1])
+        except:
+            page = 0
         items = DB.get_items_list()
+        items.sort()
         keyboard = [[]]
+        last_item = page*per_page+per_page
+        if len(items) <= last_item - 1:
+            last_item = len(items)
         in_a_row = 2
-        for item in items:
+        for item in items[page*per_page:last_item]:
             if len(keyboard[-1]) == in_a_row:
                 keyboard.append(list())
             keyboard[-1].append(InlineKeyboardButton(f"{item}", callback_data=f"item_{item}"))
+        keyboard.append([])
+        if page != 0:
+            keyboard[-1].append(
+                InlineKeyboardButton("<=", callback_data=f'items_{page-1}'),
+            )
+        if len(items) != last_item:
+            keyboard[-1].append(
+                InlineKeyboardButton("=>", callback_data=f'items_{page+1}'),
+            )
         keyboard.append([InlineKeyboardButton("Back", callback_data='dota')])
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(text="Select item", reply_markup=reply_markup)
@@ -189,7 +195,6 @@ def set_timer(update, context):
 def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
-
 
 def main():
     """Run bot."""
