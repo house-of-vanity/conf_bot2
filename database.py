@@ -210,19 +210,30 @@ class DataBase:
         return patches
 
     def get_hero_history(self, hero):
+        hero = hero.replace("'", "''")
         hero = self.get_hero_id(hero)
-        sql = f"""SELECT p.version, hc.type, hc.info, hc.meta
-        FROM `hero_changes` hc 
-        LEFT JOIN `patches` p ON p.rowid = hc.patch
-        WHERE hc.hero = {hero}"""
+        sql = f"""SELECT p.version, a.type, a.info, a.meta FROM 
+        patches p
+        LEFT JOIN (
+                SELECT p.version, hc.type, hc.info, hc.meta FROM `heroes` h
+                LEFT JOIN hero_changes hc ON hc.hero = h.ROWID
+                LEFT JOIN patches p ON hc.patch = p.ROWID
+                WHERE hc.hero = {hero}
+        ) a ON p.version = a.version
+        ORDER BY p.rowid DESC;"""
         return self.execute(sql)
 
     def get_item_history(self, item):
+        item = item.replace("'", "''")
         item = self.get_item_id(item)
-        sql = f"""SELECT p.version, ic.info 
-        FROM item_changes ic 
-        LEFT JOIN patches p ON p.rowid = ic.patch 
-        WHERE ic.item = {item}"""
+        sql = f"""SELECT p.version, a.info FROM 
+        patches p
+        LEFT JOIN (
+                SELECT p.version, ic.info FROM item_changes ic 
+                LEFT JOIN patches p ON p.rowid = ic.patch
+                WHERE ic.item = {item}
+        ) a ON p.version = a.version
+        ORDER BY p.rowid DESC"""
         return self.execute(sql)
 
     def close(self, conn):

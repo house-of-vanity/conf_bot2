@@ -54,6 +54,18 @@ def dota(update, context):
         reply_markup = InlineKeyboardMarkup(keyboard)
         update.message.reply_text('What do you wanna know?', reply_markup=reply_markup)
 
+def smart_append(line, text, lenght=4000):
+    if len(line) + len(text) > 4000:
+        text = text[len(line):]
+        text = 'Full message too long\n' + text
+    return text + line
+
+def shorten(text):
+    max_len = 4000
+    if len(text) > max_len:
+        text = text[len(text)-max_len:]
+    return 'Message too long...\n' + text
+
 def button(update, context):
     query = update.callback_query
     if query.data.split('_')[0] == 'close':
@@ -73,37 +85,67 @@ def button(update, context):
         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data='patches'),]])
         query.edit_message_text(f"Tut ya sdelayoo informatsiy o petche {query.data}", reply_markup=reply_markup)
     if query.data.split('_')[0] == 'item':
-        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data='items'),]])
+        keyboard = [[InlineKeyboardButton("Back", callback_data='items')]]
+        if 'expand' in query.data:
+            expand = True
+        else:
+            expand = False
+            keyboard[0].append(InlineKeyboardButton(
+                    "Expand",
+                    callback_data=f'{query.data}_expand')
+            )
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        expand = True if 'expand' in query.data else False
         item_name = query.data.split('_')[1]
         item_history = DB.get_item_history(item_name)
         text = f'*{item_name}* update history\n'
         cur_patch = ''
         for upd in item_history:
-           if upd[0] != cur_patch:
-              text += f"\n{'◀'*1}*{upd[0]}*{'▶'*1}\n"
-              cur_patch = upd[0]
-           text += f'\t\t 🔹 {upd[1]}\n' 
+            if upd[1] is None and not expand:
+                continue
+            if upd[0] != cur_patch:
+                no_info = '*No changes*' if upd[1] is None else ''
+                text += f"\n* {upd[0]} {no_info} *\n"
+                cur_patch = upd[0]
+            if upd[1] is not None:
+                text += f'\t\t 🔹 {upd[1]}\n'
         query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
 
     if query.data.split('_')[0] == 'hero':
-        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data='heroes'),]])
+        keyboard = [[InlineKeyboardButton("Back", callback_data='heroes')]]
+        if 'expand' in query.data:
+            expand = True
+        else:
+            expand = False
+            keyboard[0].append(InlineKeyboardButton(
+                    "Expand",
+                    callback_data=f'{query.data}_expand')
+            )
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        expand = True if 'expand' in query.data else False
         hero_name = query.data.split('_')[1]
         hero_history = DB.get_hero_history(hero_name)
         text = f'*{hero_name}* update history\n'
         cur_patch = ''
         cur_type = ''
         for upd in hero_history:
-            if len(text) > 3900:
-                text += '\nMessage too long ...'
-                break
             if upd[0] != cur_patch:
-               text += f"\n{'◀'*1}*{upd[0]}*{'▶'*1}\n"
-               cur_patch = upd[0]
-               cur_type = ''
-            if upd[1] != cur_type:
-               text += f"🔆*{upd[1].capitalize()}*\n"
-               cur_type = upd[1]
-            text += f'\t\t 🔹 {upd[2]}\n' 
+                if upd[1] is None and not expand:
+                    continue
+                no_info = '*No changes*' if upd[1] is None else ''
+                text += f"\n* {upd[0]} {no_info} *\n"
+                cur_patch = upd[0]
+                cur_type = ''
+            if upd[1] is not None:
+                if upd[1] != cur_type:
+#                  text = smart_append(f"🔆*{upd[1].capitalize()}*\n", text)
+                   text += f"🔆*{upd[1].capitalize()}*\n"
+                   cur_type = upd[1]
+#               text = smart_append(f'\t\t 🔹 {upd[2]}\n', text)
+                text += f'\t\t 🔹 {upd[2]}\n'
+        text = shorten(text)
         query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
 
     if query.data.split('_')[0] == 'patches':
