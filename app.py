@@ -251,10 +251,6 @@ def main():
                                   pass_args=True,
                                   pass_job_queue=True,
                                   pass_chat_data=True))
-    dp.add_handler(CommandHandler("dota", dota,
-                                  pass_args=True,
-                                  pass_job_queue=True,
-                                  pass_chat_data=True))
 
     # log all errors
     dp.add_error_handler(error)
